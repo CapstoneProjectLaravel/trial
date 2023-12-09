@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .profile-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin: 0 auto 20px;
+        }
+
+        .profile-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            text-align: justify;
+            margin-bottom: 15px;
+            margin-left: 220px;
+        }
+
+        .edit-button,
+        .done-button,
+        .return-button {
+            background-color: #87CEEB;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .cancel-button {
+            background-color: #FF6961;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="profile-image"></div>
+
+        <div class="profile-info">
+            <div class="info-item" id="email"></div>
+            <div class="info-item" id="name"></div>
+            <div class="info-item" id="contact"></div>
+            <div class="info-item" id="address"></div>
+        </div>
+
+        <div class="button-container">
+            <button class="edit-button">Edit</button>
+            <button class="done-button" style="display:none;">Done</button>
+            <button class="cancel-button" style="display:none;">Cancel</button>
+            <button class="return-button">Return to Dashboard</button>
+        </div>
+
+    </div>
+    <script>
+        // Fetch user profile data from localStorage
+        const userProfile = JSON.parse(localStorage.getItem('sellerInfo'));
+
+        // Reference to profile info elements
+        const emailElement = document.getElementById('email');
+        const nameElement = document.getElementById('name');
+        const contactElement = document.getElementById('contact');
+        const addressElement = document.getElementById('address');
+
+        // Populate user profile information
+        emailElement.textContent = `Email: ${userProfile.email}`;
+        nameElement.textContent = `Name: ${userProfile.name}`;
+        contactElement.textContent = `Contact: ${userProfile.contact || 'N/A'}`;
+        addressElement.textContent = `Address: ${userProfile.address || 'N/A'}`;
+
+        // Edit and Done buttons
+        const editButton = document.querySelector('.edit-button');
+        const doneButton = document.querySelector('.done-button');
+        const cancelButton = document.querySelector('.cancel-button');
+
+        // Set initial state
+        let isEditing = false;
+
+        // Edit button click event
+        editButton.addEventListener('click', () => {
+            isEditing = true;
+
+            // Enable editing fields
+            emailElement.innerHTML = `Email: <input type="text" id="editEmail" value="${userProfile.email}">`;
+            nameElement.innerHTML = `Name: <input type="text" id="editName" value="${userProfile.name}">`;
+            contactElement.innerHTML = `Contact: <input type="text" id="editContact" value="${userProfile.contact || ''}">`;
+            addressElement.innerHTML = `Address: <input type="text" id="editAddress" value="${userProfile.address || ''}">`;
+
+            // Toggle button visibility
+            editButton.style.display = 'none';
+            doneButton.style.display = 'inline-block';
+            cancelButton.style.display = 'inline-block';
+        });
+
+        // Cancel button click event
+        cancelButton.addEventListener('click', () => {
+            // Restore original content
+            emailElement.textContent = `Email: ${userProfile.email}`;
+            nameElement.textContent = `Name: ${userProfile.name}`;
+            contactElement.textContent = `Contact: ${userProfile.contact || 'N/A'}`;
+            addressElement.textContent = `Address: ${userProfile.address || 'N/A'}`;
+
+            // Toggle button visibility
+            editButton.style.display = 'inline-block';
+            doneButton.style.display = 'none';
+            cancelButton.style.display = 'none';
+
+            isEditing = false;
+        });
+
+        // Done button click event
+        doneButton.addEventListener('click', () => {
+            // Get updated values from input fields
+            const newName = document.getElementById('editName').value;
+            const newEmail = document.getElementById('editEmail').value;
+            const newAddress = document.getElementById('editAddress').value;
+            const newContact = document.getElementById('editContact').value;
+
+            // Check if any field has been modified
+            if (newName == userProfile.name &&
+                newEmail == userProfile.email &&
+                newAddress == userProfile.address &&
+                newContact == userProfile.contact) {
+                emailElement.textContent = `Email: ${userProfile.email}`;
+                nameElement.textContent = `Name: ${userProfile.name}`;
+                contactElement.textContent = `Contact: ${userProfile.contact || 'N/A'}`;
+                addressElement.textContent = `Address: ${userProfile.address || 'N/A'}`;
+
+            editButton.style.display = 'inline-block';
+            doneButton.style.display = 'none';
+            cancelButton.style.display = 'none';
+
+            isEditing = false;
+            } else {
+                // Fields have been modified, make the API call and update the profile
+                const updatedProfile = {
+                    id: userProfile.id,
+                    name: newName,
+                    email: newEmail,
+                    address: newAddress,
+                    contact: newContact
+                };
+
+                // Call the API to update user profile
+                fetch('http://192.168.100.6/api/userUpdate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(updatedProfile),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        // Update successful
+                        console.log('Profile updated successfully:', data.message);
+                        const userId = localStorage.getItem('id');
+                            // Fetch the seller's information using the API
+                            fetch(`http://192.168.100.6/api/userCapture?id=${userId}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(sellerInfo => {
+                                // Store the seller's information in localStorage
+                                localStorage.setItem('sellerInfo', JSON.stringify(sellerInfo));
+
+                                // Redirect to userManagement.html
+                                window.location.href = 'userManagement.html';
+                            })
+                            .catch(error => console.error('Error fetching seller info:', error));
+                    } else {
+                        // Update failed
+                        console.error('Failed to update profile:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+
+                isEditing = false;
+            }
+        });
+
+
+        document.querySelector('.return-button').addEventListener('click', function() {
+            // Redirect to dashboard.html
+            window.location.href = 'dashboard.html';
+            });
+    </script>
+
+
+</body>
+
+</html>

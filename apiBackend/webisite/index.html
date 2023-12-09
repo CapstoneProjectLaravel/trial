@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 20px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #000;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .container {
+      width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Seller Dashboard</h1>
+
+<div class="container">
+
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="email" id="loginEmail" name="email" placeholder="Email" required><br>
+    <input type="password" id="loginPassword" name="password" placeholder="Password" required><br>
+    <button type="submit">Login</button>
+  </form>
+
+</div>
+
+<script>
+
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+  event.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Perform login using fetch API
+  fetch('http://192.168.100.6/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Call the API to get the seller ID
+        fetch(`http://192.168.100.6/api/get-seller-id?user_id=${data.user.id}`)
+          .then(response => response.json())
+          .then(sellerData => {
+            if (sellerData.seller_id) {
+              // Store the token and seller ID in localStorage
+              localStorage.setItem('token', data.token);
+              localStorage.setItem('sellerId', sellerData.seller_id);
+              localStorage.setItem('id',data.user.id);
+              // Redirect to dashboard with seller ID
+              window.location.href = `dashboard.html?seller_id=${sellerData.seller_id}`;
+            } else {
+              // Handle cases where the user is not a seller
+              console.error('User is not a seller');
+            }
+          })
+          .catch(error => console.error('Error:', error));
+      } else {
+        // Handle login failure, show error message
+        console.error('Login failed');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+</script>
+
+</body>
+
+</html>

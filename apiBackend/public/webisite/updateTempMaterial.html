@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Temporary Material Item</title>
+    <style>
+        /* CSS for the modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    text-align: center;
+}
+
+/* Style for the buttons inside the modal */
+.modal-content button {
+    margin: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea,
+        .form-group input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-group input[type="file"] {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        #imagePreview {
+            width: 100%;
+            max-width: 300px; /* Set the maximum width for the image preview */
+            height: auto;
+            margin-top: 1.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .buttons #saveButton {
+            background-color: #4caf50;
+            color: #fff;
+        }
+
+        .buttons #cancelButton {
+            background-color: #ccc;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Update Temporary Material Item</h1>
+
+        <form id="updateTempMaterialForm">
+            <input type="hidden" id="tempId" name="temp_id">
+               <!-- Image Upload -->
+               <div class="form-group">
+                
+            <label for="image">Upload New Image:</label><br>
+            <img src="" alt="Image Preview" id="imagePreview">
+            <input type="file" id="image" name="image" accept=".jpg, .jpeg, .png">
+        </div>
+            <div class="form-group">
+                
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name">
+            </div>
+            <div class="form-group">
+                <label for="size">Size:</label>
+                <input type="text" id="size" name="size">
+            </div>
+            <div class="form-group">
+                <label for="type">Type:</label>
+                <input type="text" id="type" name="type">
+            </div>
+            <div class="form-group">
+                <label for="color">Color:</label>
+                <input type="text" id="color" name="color">
+            </div>
+            <div class="form-group">
+                <label for="otherDetails">Other Details:</label>
+                <textarea id="otherDetails" name="other_details"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="purchasePrice">Purchase Price:</label>
+                <input type="number" id="purchasePrice" name="purchase_price">
+            </div>
+
+         
+            <div class="buttons">
+                <button type="button" id="saveButton">Save</button>
+                <button type="button" id="cancelButton">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+
+            <!-- Add a modal for confirmation -->
+        <div id="confirmationModal" class="modal">
+            <div class="modal-content">
+                <p>Do you want to update the item?</p>
+                <button id="confirmYes">Yes</button>
+                <button id="confirmNo">No</button>
+            </div>
+        </div>
+
+           
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tempIdInput = document.getElementById('tempId');
+            const nameInput = document.getElementById('name');
+            const sizeInput = document.getElementById('size');
+            const typeInput = document.getElementById('type');
+            const colorInput = document.getElementById('color');
+            const otherDetailsInput = document.getElementById('otherDetails');
+            const purchasePriceInput = document.getElementById('purchasePrice');
+            const imageInput = document.getElementById('image');
+            const imagePreview = document.getElementById('imagePreview');
+            const saveButton = document.getElementById('saveButton');
+            const cancelButton = document.getElementById('cancelButton');
+            // Populate form fields with data from query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            tempIdInput.value = urlParams.get('temp_id') || '';
+            nameInput.value = urlParams.get('name') || '';
+            sizeInput.value = urlParams.get('size') || '';
+            typeInput.value = urlParams.get('type') || '';
+            colorInput.value = urlParams.get('color') || '';
+            otherDetailsInput.value = urlParams.get('other_details') || '';
+            purchasePriceInput.value = urlParams.get('purchase_price') || '';
+
+            // Set the src attribute of the image preview
+            imagePreview.src = ''; // Set the URL of the old image here
+
+            // Image preview before upload
+            imageInput.addEventListener('change', function () {
+                const file = imageInput.files[0];
+                const reader = new FileReader();
+                reader.onloadend = function () {
+                    imagePreview.src = reader.result;
+                };
+                if (file) {
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.src = '';
+                }
+            });
+
+            const modal = document.getElementById('confirmationModal');
+            const confirmYesButton = document.getElementById('confirmYes');
+            const confirmNoButton = document.getElementById('confirmNo');
+
+            // Save button click event
+            saveButton.addEventListener('click', function () {
+                const hasImage = imageInput.files.length > 0;
+
+                modal.style.display = 'block';
+
+            confirmYesButton.onclick = function () {   
+                const data = {
+            temp_id: tempIdInput.value,
+            name: nameInput.value,
+            size: sizeInput.value,
+            type: typeInput.value,
+            color: colorInput.value,
+            other_details: otherDetailsInput.value,
+            purchase_price: purchasePriceInput.value,
+            image: hasImage ? imageInput.files[0] : null // Use null if no image is selected
+        };
+
+                // Use FormData to send files with fetch
+                const formData = new FormData();
+                formData.append('temp_id', data.temp_id);
+                formData.append('name', data.name);
+                formData.append('size', data.size);
+                formData.append('type', data.type);
+                formData.append('color', data.color);
+                formData.append('other_details', data.other_details);
+                formData.append('purchase_price', data.purchase_price);
+                if (data.image) {
+                    formData.append('image', data.image);
+        }
+
+                fetch('http://192.168.100.6/api/updateTempMaterial', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                        window.location.href = 'dashboard.html';
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Handle error (e.g., show an error message)
+                    });
+                    modal.style.display = 'none';
+                        };
+
+                        confirmNoButton.onclick = function () {
+                            // Close the modal without updating
+                            modal.style.display = 'none';
+                        };
+        });
+
+            // Cancel button click event (redirect back to the dashboard or any other appropriate page)
+            cancelButton.addEventListener('click', function () {
+                window.location.href = 'dashboard.html';
+            });
+        });
+
+
+    </script>
+</body>
+
+</html>

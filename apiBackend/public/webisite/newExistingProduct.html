@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Product</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+        }
+
+        .form-container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .productField {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .productField:last-child {
+            border-bottom: none;
+        }
+
+        .productField label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .productField input[type="text"],
+        .productField textarea,
+        .productField input[type="file"] {
+            width: calc(100% - 20px);
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .buttons button {
+            background-color: #4caf50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+
+        .buttons button.cancel {
+            margin-top: 10px;
+            background-color: #f44336;
+        }
+
+        .return-button {
+            margin-top: 20px;
+            text-decoration: underline;
+            cursor: pointer;
+            color: #007bff;
+        }    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h1>Add New Product</h1>
+
+        <form id="newProductForm">
+            <div id="productFields">
+                <div class="productField">
+                    <label for="material">Material:</label>
+                    <select class="material" name="material" required>
+                        <!-- Options will be populated dynamically using JavaScript -->
+                    </select><br>
+                    <label for="type">Type:</label>
+                    <select class="type" name="type" required>
+                        <!-- Options will be populated dynamically using JavaScript -->
+                    </select><br>
+                    <label for="size">Size:</label>
+                    <select class="size" name="size" required>
+                        <!-- Options will be populated dynamically using JavaScript -->
+                    </select><br>
+                    <label for="color">Color:</label>
+                    <select class="color" name="color" required>
+                        <!-- Options will be populated dynamically using JavaScript -->
+                    </select><br>
+                    <label for="price">Price:</label>
+                    <input type="text" class="price" name="price" required><br>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button type="button" id="addItemButton">Add Item</button>
+                <button type="button" id="doneButton">Done</button>
+                <button type="button" class="cancel" id="cancelButton">Cancel</button>
+            </div>
+        </form>
+
+        <div class="return-button" id="returnButton">Return to Dashboard</div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const materialDropdown = document.querySelector('.material');
+            const typeDropdown = document.querySelector('.type');
+            const sizeDropdown = document.querySelector('.size');
+            const colorDropdown = document.querySelector('.color');
+
+            // Function to populate dropdown options
+            function populateDropdown(dropdown, options) {
+                dropdown.innerHTML = ""; // Clear existing options
+                options.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    dropdown.appendChild(option);
+                });
+            }
+
+            // Function to handle API calls and populate dropdowns
+            function handleMaterialChange() {
+                const material = materialDropdown.value;
+                fetch(`http://192.168.100.6/api/getMaterialDetails?material_name=${encodeURIComponent(material)}`)
+                    .then(response => response.json())
+                    .then(data => {
+
+                        const materialId = data.material_id;
+                        // Store the material_id in a variable accessible to other parts of your code
+                        window.selectedMaterialId = materialId;
+                        populateDropdown(typeDropdown, data.types.filter(type => type !== null));
+                        populateDropdown(sizeDropdown, data.sizes.filter(size => size !== null));
+                        populateDropdown(colorDropdown, data.color.filter(color => color !== null));
+
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            // Event listeners
+            materialDropdown.addEventListener('change', handleMaterialChange);
+
+            // Event listener for adding a new product field
+    document.getElementById('addItemButton').addEventListener('click', function () {
+                const productFields = document.getElementById('productFields');
+                const newProductField = document.querySelector('.productField').cloneNode(true);
+                productFields.appendChild(newProductField);
+            });
+
+
+    document.getElementById('doneButton').addEventListener('click', async function () {
+    const productFields = document.querySelectorAll('.productField');
+    const sellerId = localStorage.getItem('sellerId');
+    const requests = [];
+
+    for (const field of productFields) {
+        const materialName = field.querySelector('.material').value;
+        const type = field.querySelector('.type').value;
+        const size = field.querySelector('.size').value;
+        const color = field.querySelector('.color').value;
+        const price = field.querySelector('.price').value;
+
+        try {
+            // Step 1: Get material_id using getMaterialDetails API
+            const materialResponse = await fetch(`http://192.168.100.6/api/getMaterialDetails?material_name=${encodeURIComponent(materialName)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (materialResponse.ok) {
+                // Step 2: Extract materialId
+                const materialData = await materialResponse.json();
+                const materialId = materialData.material_id;
+
+                // Step 3: Make getIdDetail API Call using materialId
+                const response = await fetch(`http://192.168.100.6/api/getIdDetail?material_id=${materialId}&type=${type}&size=${size}&color=${color}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    // Step 4: Extract detailId
+                    const data = await response.json();
+                    const detailId = data.detail_id;
+
+                    // Step 5: Prepare Data for add-inventory-item API
+                    const inventoryData = {
+                        seller_id: sellerId,
+                        material_id: detailId,
+                        availability: 'available',
+                        purchase_price: price,
+                    };
+
+                    // Step 6: Make add-inventory-item API Call
+                    const inventoryResponse = await fetch('http://192.168.100.6/api/add-inventory-item', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(inventoryData)
+                    });
+
+                    // Step 7: Handle inventory API response (if needed)
+                    if (inventoryResponse.ok) {
+                        console.log('Product added to inventory successfully.');
+                        console.log(inventoryData);
+                    } else {
+                        console.error('Error adding product to inventory:', inventoryResponse.status);
+                    }
+
+                    // Add the request to the requests array if needed
+                    requests.push(inventoryResponse);
+                } else {
+                    // Handle error response from getIdDetail API
+                    console.error('Error getting detail ID:', response.status);
+                }
+            } else {
+                // Handle error response from getMaterialDetails API
+                console.error('Error getting material ID:', materialResponse.status);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    window.location.href = 'dashboard.html';
+});
+
+
+
+
+
+
+            document.getElementById('returnButton').addEventListener('click', function () {
+                // Redirect the user to the dashboard page
+                window.location.href = 'dashboard.html';
+            });
+
+            // Populate material dropdown on page load
+            fetch('http://192.168.100.6/api/get-materials')
+                .then(response => response.json())
+                .then(data => {
+                    populateDropdown(materialDropdown, data);
+                    const initialMaterial = data[0]; // Change this to select a specific initial material if needed
+                    fetchMaterialDetails(initialMaterial);
+                })
+                .catch(error => console.error('Error:', error));
+
+            function fetchMaterialDetails(material) {
+                fetch(`http://192.168.100.6/api/getMaterialDetails?material_name=${encodeURIComponent(material)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const materialId = data.material_id;
+                        window.selectedMaterialId = materialId;
+                        populateDropdown(typeDropdown, data.types.filter(type => type !== null));
+                        populateDropdown(sizeDropdown, data.sizes.filter(size => size !== null));
+                        populateDropdown(colorDropdown, data.color.filter(color => color !== null));
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+
+        document.body.addEventListener('change', function (event) {
+        const target = event.target;
+        if (target.classList.contains('material')) {
+            const materialDropdowns = document.querySelectorAll('.material');
+            materialDropdowns.forEach(materialDropdown => {
+                if (materialDropdown === target) {
+                    // If the change happened in this dropdown, update the related type, size, and color dropdowns
+                    const typeDropdown = materialDropdown.closest('.productField').querySelector('.type');
+                    const sizeDropdown = materialDropdown.closest('.productField').querySelector('.size');
+                    const colorDropdown = materialDropdown.closest('.productField').querySelector('.color');
+
+                    const material = materialDropdown.value;
+                    fetch(`http://192.168.100.6/api/getMaterialDetails?material_name=${encodeURIComponent(material)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            populateDropdown(typeDropdown, data.types.filter(type => type !== null));
+                            populateDropdown(sizeDropdown, data.sizes.filter(size => size !== null));
+                            populateDropdown(colorDropdown, data.color.filter(color => color !== null));
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            });
+        }
+    });
+
+    document.getElementById('cancelButton').addEventListener('click', function () {
+    // Remove all product fields except the original one
+    const productFields = document.querySelectorAll('.productField');
+    productFields.forEach((field, index) => {
+        if (index !== 0) {
+            field.remove();
+        } else {
+            // Clear input values of the original product field
+            const inputs = field.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (input.type === 'text') {
+                    input.value = '';
+                } else if (input.tagName === 'SELECT') {
+                    input.selectedIndex = 0;
+                }
+            });
+        }
+    });
+});
+
+
+        });
+
+    </script>
+
+</body>
+
+</html>

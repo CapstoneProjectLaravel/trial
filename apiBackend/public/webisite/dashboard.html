@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    h2 {
+      margin-top: 20px;
+    }
+
+    #buttons-container {
+      display: flex;
+      justify-content: flex-end;
+      padding: 20px;
+    }
+
+    button {
+      background-color: #87CEEB;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+
+    #inventory,
+    #tempInventory,
+    #orders {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-gap: 20px;
+      padding: 20px;
+      justify-content: center;
+    }
+
+    .item {
+      border: 1px solid #ccc;
+      padding: 20px;
+      background-color: white;
+      text-align: left;
+      overflow: hidden; /* Hide overflowing content */
+      text-overflow: ellipsis; /* Display ellipsis for overflow */
+      white-space: nowrap; /* Prevent text from wrapping */
+    }
+
+    .item img {
+        max-width: 100%;
+        height: 150px; /* Set a fixed height for the images */
+        margin-bottom: 10px;
+        }
+
+
+    .item p {
+      margin: 0;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    #addMaterialForm button {
+      background-color: #87CEEB;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    .item.dimmed {
+      opacity: 0.7;
+      background-color: rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .choice-buttons {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: black;
+      color: black;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+
+    .choice-buttons button {
+      margin-top: 5px;
+      width: 100%;
+      background-color: #00c3ff;
+      color: black;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+
+      
+    }
+    .toggle-availability-button {
+    background-color: #4ca0af; /* Green */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin: 0 10px;
+    cursor: pointer;
+}
+    #addExistingMaterial, #addMaterialForm {
+      margin-top: 10px;
+    }
+
+    #addExistingMaterial button, #addMaterialForm button {
+      background-color: rgb(76, 168, 175);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Seller Dashboard</h1>
+
+  <div id="buttons-container">
+    <button id="accountManagementButton">Account Management</button>
+    <button id="generateReportButton">Generate Report</button>
+    <button id="logoutButton">Logout</button>
+  </div>
+
+  <h2>My Inventory
+    <form id="addExistingMaterial" style="display: inline;">
+      <button type="submit">+</button>
+    </form>
+  </h2>
+
+  <div id="inventory"></div>
+
+  <h3>My Temporary Inventory
+    <form id="addMaterialForm" style="display: inline;">
+      <button type="submit">+</button>
+    </form>
+  </h3>
+
+  <div id="tempInventory"></div>
+
+  <h2>Orders</h2>
+  <div id="orders"></div>
+
+
+
+
+<script>
+const sellerId = localStorage.getItem('sellerId')
+
+function createAvailabilityButton(item) {
+    const button = document.createElement('button');
+    button.classList.add('toggle-availability-button');
+    button.addEventListener('click', function (event) {
+        event.stopPropagation();
+        toggleAvailability(item);
+    });
+
+    button.textContent = item.availability === 'available' ? 'set to unavailable' : 'set to available';
+    button.disabled = false;
+
+    item.appendChild(button);
+}
+
+function toggleAvailability(item) {
+  const isTempMaterial = item.dataset.is_temp_material === 'true';
+    const itemId = isTempMaterial ? item.dataset.temp_id : item.dataset.inventory_id;
+    const currentAvailability = item.availability;
+
+    // Determine the new availability value based on the current value
+    const newAvailability = currentAvailability === 'available' ? 'unavailable' : 'available';
+
+    console.log('Current Availability:', currentAvailability);
+    console.log('New Availability:', newAvailability);
+
+    // Make the API call to update the availability
+    const apiUrl = isTempMaterial ? 'updateTempAvailability' : 'updateInventoryAvailability';
+
+    // Define data object for the API call
+    const apiData = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            temp_id: isTempMaterial ? itemId : undefined,
+            inventory_id: isTempMaterial ? undefined : itemId,
+            availability: newAvailability,
+        }),
+    };
+
+    fetch(`http://192.168.100.6/api/${apiUrl}`, apiData)
+    .then(response => {
+        console.log('API Response:', response); // Log the full response
+
+        // Check if the response is OK
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        // Check if the response content type is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Invalid content type. Expected JSON.');
+        }
+
+        return response.json();
+    })
+    .then(data => {
+        console.log('Parsed JSON:', data); // Log the parsed JSON response
+
+        if (data.message) {
+            // Update the UI or perform any necessary actions
+            console.log(data.message);
+
+            // Update the button state based on the new availability
+            item.availability = newAvailability;
+            window.location.reload();
+
+            
+        } else {
+            console.error('Failed to update availability');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+
+
+  document.addEventListener('DOMContentLoaded', function() {
+
+    const sellerId = localStorage.getItem('sellerId');
+
+
+    fetch(`http://192.168.100.6/api/getOrders?seller_id=${sellerId}`)
+    .then(response => response.json())
+    .then(data => {
+        const ordersDiv = document.getElementById('orders');
+        const orderDiv = document.createElement('div');
+         orderDiv.classList.add('item');
+
+        data.forEach(order => {
+            const orderDiv = document.createElement('div');
+            orderDiv.classList.add('item');
+            orderDiv.dataset.order_id = order.order_id;
+            
+            const img = document.createElement('img');
+            img.src = `data:image/png;base64, ${order.material_image}`;
+            orderDiv.appendChild(img);
+
+            const details = document.createElement('p');
+            details.innerHTML = `
+                <p>Name: ${order.material_name}</p>
+                <p>Order Amount: ${order.orderAmount} ${order.per}</p>
+                <p>Days: ${order.days}</p>
+                <p>Price: ${order.price}</p>
+                <p>Contact: 0${order.contact}</p>
+                <p>Buyer: ${order.name}</p>
+                <p>Approval Status: ${order.approve === 1 ? 'Approved' : order.approve === 0 ? 'Rejected' : order.approve === null ? 'Pending' : 'Unknown'}</p>
+                
+                `;
+            orderDiv.appendChild(details);
+
+            ordersDiv.appendChild(orderDiv);
+
+            
+        });
+    })
+    .catch(error => console.error('Error:', error));
+
+
+    fetch(`http://192.168.100.6/api/seller_inventory_temporary?seller_id=${sellerId}`)
+      .then(response => response.json())
+      .then(data => {
+        const tempInventoryDiv = document.getElementById('tempInventory');
+        
+        data.forEach(item => {
+          const itemDiv = document.createElement('div');
+          itemDiv.classList.add('item');
+
+          itemDiv.dataset.temp_id = item.temp_id;
+          itemDiv.dataset.is_temp_material = 'true'; // Assuming this is a string indicating it's a temp material
+          itemDiv.dataset.name = item.name;
+          itemDiv.dataset.size = item.size;
+          itemDiv.dataset.type = item.type;
+          itemDiv.dataset.color = item.color;
+          itemDiv.dataset.other_details = item.other_details;
+          itemDiv.dataset.purchase_price = item.purchase_price;
+                // Add the availability property to the itemDiv element
+          itemDiv.availability = item.availability;
+
+          const img = document.createElement('img');
+          img.src = `data:image/png;base64, ${item.material_image}`;
+          itemDiv.appendChild(img);
+
+          const details = document.createElement('p');
+          details.innerHTML = `
+            <p><b>Name:</b> ${item.name}</p>
+            <p><b>Size:</b> ${item.size}</p>
+            <p><b>Type:</b> ${item.type}</p>
+            <p><b>Color:</b> ${item.color}</p>
+            <p><b>Details:</b> ${item.other_details}</p>
+            <p><b>No. searched(week):</b> ${item.weeklySearch}</p>
+            <p><b>No. added to Cart:</b> ${item.addedToCartWeekly}</p>
+            <p><b>Availability:</b> ${item.availability}</p>
+            <br>
+          `;
+          itemDiv.appendChild(details);
+          createAvailabilityButton(itemDiv, false);
+          tempInventoryDiv.appendChild(itemDiv);
+        });
+      })
+      .catch(error => console.error('Error:', error));
+  });
+
+fetch(`http://192.168.100.6/api/seller_inventory?seller_id=${sellerId}`)
+  .then(response => response.json())
+  .then(data => {
+    const inventoryDiv = document.getElementById('inventory');
+
+     data.forEach(item => {
+      const itemDiv = document.createElement('div');
+      itemDiv.classList.add('item');
+
+      // Set dataset properties on the itemDiv element
+      itemDiv.dataset.inventory_id = item.inventory_id;
+      itemDiv.dataset.material_id=item.material_id;
+      itemDiv.dataset.purchase_price = item.purchase_price;
+      itemDiv.dataset.quantity = item.quantity; // Set
+                // Add the availability property to the itemDiv element
+        itemDiv.availability = item.availability;
+
+      const img = document.createElement('img');
+      img.src = `data:image/png;base64, ${item.material_image}`;
+      itemDiv.appendChild(img);
+
+      const details = document.createElement('p');
+      details.innerHTML = `
+        <p><b>Name:</b> ${item.material_name}</p>
+        <p><b>Size:</b> ${item.size}</p>
+        <p><b>Type:</b> ${item.type}</p>
+        <p><b>Color:</b> ${item.color}</p>
+        <p><b>Details:</b> ${item.material_details}</p>
+        <p><b>No. searched(week):</b>${item.weeklySearch}</p>
+        <p><b>No. added to Cart:</b> ${item.addedToCartWeekly}</p>
+        <p><b>Availability:</b> ${item.availability}</p>
+        <br>
+
+      `;
+      itemDiv.appendChild(details);
+      createAvailabilityButton(itemDiv, false);
+
+      inventoryDiv.appendChild(itemDiv);
+    });
+
+  })
+
+  
+  .catch(error => console.error('Error:', error));
+   
+
+
+  
+
+  document.getElementById('generateReportButton').addEventListener('click', function() {
+    const token = localStorage.getItem('token');
+    fetch('http://192.168.100.6/api/generateReport', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Add your authorization header here
+        },
+        body: JSON.stringify({ seller_id: sellerId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Trigger the download using the obtained download link
+        window.location.href = data.download_link;
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+
+
+   
+
+   
+document.getElementById('addMaterialForm').addEventListener('submit', function(event) {
+  event.preventDefault();
+        const sellerId = localStorage.getItem('sellerId');
+        // Redirect to newProduct.html with the seller_id query parameter
+        window.location.href = `newProduct.html?seller_id=${sellerId}`;
+});
+
+
+document.getElementById('addExistingMaterial').addEventListener('submit', function(event) {
+  event.preventDefault();
+        const sellerId = localStorage.getItem('sellerId');
+        // Redirect to newProduct.html with the seller_id query parameter
+        window.location.href = `newExistingProduct.html?seller_id=${sellerId}`;
+});
+
+
+
+document.getElementById('logoutButton').addEventListener('click', function(event) {
+    event.preventDefault();
+
+    // Get the token from localStorage
+    const token = localStorage.getItem('token');
+
+    // Call the logout API to invalidate the token
+    fetch('http://192.168.100.6/api/logout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Add the token to the headers
+        },
+        body: JSON.stringify({ token }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Clear cache and redirect to index.html
+            localStorage.removeItem('token');
+            localStorage.removeItem('sellerId');
+            window.location.href = 'index.html';
+        } else {
+            console.error('Logout failed');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+
+  document.getElementById('accountManagementButton').addEventListener('click', function(event) {
+    event.preventDefault();
+
+    // Get the seller ID from localStorage
+    const userId = localStorage.getItem('id');
+
+    // Fetch the seller's information using the API
+    fetch(`http://192.168.100.6/api/userCapture?id=${userId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+    })
+    .then(response => response.json())
+    .then(sellerInfo => {
+        // Store the seller's information in localStorage
+        localStorage.setItem('sellerInfo', JSON.stringify(sellerInfo));
+
+        // Redirect to userManagement.html
+        window.location.href = 'userManagement.html';
+    })
+    .catch(error => console.error('Error fetching seller info:', error));
+});
+
+
+
+
+document.getElementById('inventory').addEventListener('click', function(event) {
+    handleItemClick(event, 'updateInventory.html');
+});
+
+document.getElementById('tempInventory').addEventListener('click', function(event) {
+    handleItemClick(event, 'updateTempMaterial.html');
+});
+
+
+document.getElementById('orders').addEventListener('click', function(event) {
+    handleItemClick(event, 'dashboard.html');
+});
+
+
+
+function handleItemClick(event, updatePageUrl) {
+    const target = event.target.closest('.item');
+    console.log(target);
+
+    const allItems = document.querySelectorAll('.item');
+
+    // If the clicked item already has dimmed class, remove it and the choice buttons
+    if (target.classList.contains('dimmed')) {
+        target.classList.remove('dimmed');
+        const choiceButtons = target.querySelector('.choice-buttons');
+        if (choiceButtons) {
+            choiceButtons.remove();
+            event.stopPropagation();
+        }
+    } else {
+        // Remove dimmed class and choice buttons from all items except the clicked one
+        allItems.forEach(item => {
+            if (item !== target && item.classList.contains('dimmed')) {
+                item.classList.remove('dimmed');
+                const choiceButtons = item.querySelector('.choice-buttons');
+                if (choiceButtons) {
+                    choiceButtons.remove();
+                }
+            }
+        });
+
+        // Toggle the dimmed class for the clicked item
+        target.classList.add('dimmed');
+
+        const choiceDiv = document.createElement('div');
+        choiceDiv.classList.add('choice-buttons');
+
+        // Check the origin of the clicked item and add appropriate buttons and actions
+        if (target.closest('#tempInventory') || target.closest('#inventory')) {
+            const updateButton = document.createElement('button');
+            updateButton.textContent = 'Update';
+            updateButton.classList.add('update-button');
+            updateButton.addEventListener('click', function(event) {
+                updateButtonClickHandler(event, target);
+            });
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.classList.add('delete-button');
+            deleteButton.addEventListener('click', function(event) {
+                deleteButtonClickHandler(event, target);
+            });
+
+            choiceDiv.appendChild(updateButton);
+            choiceDiv.appendChild(deleteButton);
+        } else if (target.closest('#orders')) {
+            const approveButton = document.createElement('button');
+            approveButton.textContent = 'Approve';
+            approveButton.classList.add('approve-button');
+            approveButton.addEventListener('click', function(event) {
+                handleApprovalButtonClick(event, target, 'approve');
+            });
+
+            const rejectButton = document.createElement('button');
+            rejectButton.textContent = 'Reject';
+            rejectButton.classList.add('reject-button');
+            rejectButton.addEventListener('click', function(event) {
+                handleApprovalButtonClick(event, target, 'reject');
+            });
+            const adjustButton = document.createElement('button');
+            adjustButton.textContent = 'Adjust Price';
+            adjustButton.classList.add('adjust-button');
+            adjustButton.addEventListener('click', function(event) {
+                adjustPriceClickHandler(event, target);
+            });
+
+            choiceDiv.appendChild(approveButton);
+            choiceDiv.appendChild(rejectButton);
+            choiceDiv.appendChild(adjustButton);
+
+
+        }
+
+        // Append the choice buttons to the target item
+        target.appendChild(choiceDiv);
+
+        // Prevent the click event from reaching the document and immediately closing the choice buttons
+        event.stopPropagation();
+    }
+
+    function clickOutsideHandler(event) {
+      
+            if (!target.contains(event.target)) {
+                target.classList.remove('dimmed');
+                event.stopPropagation();
+
+                document.removeEventListener('click', clickOutsideHandler);
+            }
+        }
+
+  function updateButtonClickHandler(event, target) {
+    event.stopPropagation();
+    
+    const isTempMaterial = target.dataset.is_temp_material === 'true';
+    const itemId = isTempMaterial ? target.dataset.temp_id : target.dataset.inventory_id;
+    const name = target.dataset.name;
+    const size = target.dataset.size;
+    const type = target.dataset.type;
+    const color = target.dataset.color;
+    const otherDetails = target.dataset.other_details;
+    const purchasePrice = target.dataset.purchase_price;
+    const quantity = target.dataset.quantity;
+
+    if (isTempMaterial) {
+        // If the clicked item is from tempmaterials, fetch temp_id and other relevant data
+        const tempId = itemId;
+
+        // Redirect to updateTempMaterial.html with query parameters
+        window.location.href = `updateTempMaterial.html?temp_id=${tempId}&name=${name}&size=${size}&type=${type}&color=${color}&other_details=${otherDetails}&purchase_price=${purchasePrice}`;
+    } else {
+        // If the clicked item is from inventory, fetch inventory_id, detail_id, purchase_price, and quantity
+        const inventoryId = itemId;
+        const detailId = target.dataset.material_id;
+
+        // Redirect to updateInventory.html with query parameters
+        window.location.href = `updateInventory.html?inventory_id=${inventoryId}&detail_id=${detailId}&purchase_price=${purchasePrice}&quantity=${quantity}`;
+    }
+}
+
+
+function deleteButtonClickHandler(event, targetItem) {
+    event.stopPropagation();
+    const isTempMaterial = targetItem.dataset.is_temp_material === 'true';
+    const itemId = isTempMaterial ? targetItem.dataset.temp_id : targetItem.dataset.inventory_id;
+
+    const confirmed = confirm('Are you sure you want to delete this item?');
+    if (confirmed) {
+        // Construct the full API endpoint URL with query parameter based on item type
+        const apiEndpoint = isTempMaterial ? `deleteTemp?temp_id=${itemId}` : `deleteInventory?inventory_id=${itemId}`;
+        const apiUrl = `http://192.168.100.6/api/${apiEndpoint}`;
+
+        fetch(apiUrl, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                // Add your authorization header if required
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Item deleted successfully, you might want to update the UI here
+                window.location.reload();
+
+
+            } else {
+              window.location.reload();
+
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+
+
+function handleApprovalButtonClick(event, target, action) {
+    event.stopPropagation();
+
+    const orderId =  target.dataset.order_id;
+    
+    const apiUrl = `http://192.168.100.6/api/approveOrder?order_id=${orderId}&status=${action}`;
+
+    fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            // Add your authorization header if required
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Handle success response, e.g., update UI or show a success message
+            console.log(`Order ${orderId} ${action}ed successfully`);
+
+            window.location.reload();
+        } else {
+            // Handle error response, e.g., show an error message
+            console.error(`Failed to ${action} order ${orderId}`);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+
+function adjustPriceClickHandler(event, target) {
+    const newPrice = prompt('Enter the new price:');
+
+    // Check if the user entered a new price and it's a valid number
+    if (newPrice !== null && !isNaN(newPrice)) {
+        const orderId = target.dataset.order_id;
+        const apiUrl = `http://192.168.100.6/api/adjustOrderPrice?order_id=${orderId}&new_price=${newPrice}`;
+
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Add your authorization header if required
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Handle success response, e.g., update UI or show a success message
+                console.log(`Order ${orderId} price adjusted successfully`);
+            } else {
+                // Handle error response, e.g., show an error message
+                console.error(`Failed to adjust price for order ${orderId}`);
+            }
+        })
+        .catch(error => {
+            if (currentPrice !== undefined) {
+                console.error('Error:', error);
+            }
+        })
+        .finally(() => {
+            // Reload the page regardless of success or failure
+            window.location.reload();
+        });
+    }
+}
+
+}
+
+
+
+
+</script>
+</body>
+</html>
