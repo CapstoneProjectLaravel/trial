@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Inventory Item</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .buttons #saveButton {
+            background-color: #4caf50;
+            color: #fff;
+        }
+
+        .buttons #cancelButton {
+            background-color: #ccc;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Update Inventory Item</h1>
+        <form id="updateInventoryForm">
+            <input type="hidden" id="inventoryId" name="inventory_id">
+            <div class="form-group">
+                <input type="hidden" id="detailId" name="detail_id" required readonly>
+            </div>
+            <div class="form-group">
+                <label for="purchasePrice">Purchase Price:</label>
+                <input type="number" id="purchasePrice" name="purchase_price">
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity:</label>
+                <input type="number" id="quantity" name="quantity">
+            </div>
+
+            <div class="buttons">
+                <button type="button" id="saveButton">Update Inventory Item</button>
+                <button type="button" id="cancelButton">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('updateInventoryForm');
+            const saveButton = document.getElementById('saveButton');
+            const cancelButton = document.getElementById('cancelButton');
+            const inventoryIdInput = document.getElementById('inventoryId');
+            const detailIdInput = document.getElementById('detailId');
+            const purchasePriceInput = document.getElementById('purchasePrice');
+            const quantityInput = document.getElementById('quantity');
+
+            // Populate form fields with data from query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            inventoryIdInput.value = urlParams.get('inventory_id') || '';
+            detailIdInput.value = urlParams.get('detail_id') || '';
+            purchasePriceInput.value = urlParams.get('purchase_price') || '';
+            quantityInput.value = urlParams.get('quantity') || '';
+
+            // Save button click event
+            saveButton.addEventListener('click', function () {
+                // Prepare data for updating (gather values from form fields)
+                const data = {
+                    inventory_id: inventoryIdInput.value,
+                    detail_id: detailIdInput.value,
+                    purchase_price: purchasePriceInput.value,
+                    quantity: quantityInput.value
+                };
+
+                // Make an API call to update the inventory item
+                fetch('http://192.168.100.6/api/updateInventory', {
+                    method: 'POST', // or 'PUT' depending on your API endpoint requirements
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                    window.location.href = 'dashboard.html';
+                    })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Handle error (e.g., show an error message)
+                });
+            });
+
+            // Cancel button click event (redirect back to the dashboard or any other appropriate page)
+            cancelButton.addEventListener('click', function () {
+                 window.location.href = 'dashboard.html';
+            });
+        });
+    </script>
+</body>
+
+</html>

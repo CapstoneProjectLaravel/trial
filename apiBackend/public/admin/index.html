@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+  
+      h1 {
+        text-align: center;
+      }
+  
+      h2 {
+        margin-top: 20px;
+      }
+  
+      form {
+        margin-bottom: 20px;
+      }
+  
+      input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+  
+      button {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #000;
+        color: #fff;
+        cursor: pointer;
+      } 
+  
+      .container {
+        width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  
+
+<body>
+
+<h1>Admin Dashboard</h1>
+
+<div class="container">
+
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="email" id="loginEmail" name="email" placeholder="Email" required><br>
+    <input type="password" id="loginPassword" name="password" placeholder="Password" required><br>
+    <button type="submit">Login</button>
+  </form>
+
+</div>
+
+<script>
+
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+  event.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Perform login using fetch API
+  fetch('http://192.168.100.6/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        if (data.user.user_Type === 'Admin') { // Check if user is an admin
+          // Store the token and user ID in localStorage
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('userId', data.user.id);
+
+          // Redirect to dashboard.html
+          window.location.href = 'dashboard.html';
+        } else {
+          // Handle cases where the user is not an admin
+          console.error('Only Admins are allowed to access the dashboard');
+        }
+      } else {
+        // Handle login failure, show error message
+        console.error('Login failed');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+const emailInput = document.getElementById('loginEmail');
+    // Get the error message element
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    emailInput.parentNode.appendChild(errorMessage);
+
+    // Event listener for input events on the email field
+    emailInput.addEventListener('input', function(event) {
+      const emailValue = event.target.value;
+      // Regular expression to match valid email format (no special characters except '@' and '.')
+      const emailRegex = /^[a-zA-Z0-9._@]+$/;
+      if (!emailRegex.test(emailValue)) {
+        errorMessage.textContent = 'Invalid characters in email. Only @ and . are allowed.';
+        // Disable the submit button when there are invalid characters in the email
+        document.getElementById('loginSubmitButton').disabled = true;
+      } else {
+        errorMessage.textContent = '';
+        // Enable the submit button when the email is valid
+        document.getElementById('loginSubmitButton').disabled = false;
+      }
+    });
+
+
+</script>
+
+</body>
+
+</html>

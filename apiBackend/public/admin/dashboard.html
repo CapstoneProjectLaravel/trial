@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+  
+    .reject-button {
+      background-color: #eb7575;
+    }
+  
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
+  
+    h2 {
+      margin-top: 20px;
+    }
+  
+    #buttons-container {
+      display: flex;
+      justify-content: flex-end;
+      padding: 20px;
+    }
+  
+    button {
+      background-color: #87CEEB;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+  
+    #deactiveDiv,
+    #pendingApproval {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Adjusted minmax width */
+      grid-gap: 20px;
+      padding: 20px;
+      justify-content: center;
+    }
+  
+    .item {
+      border: 1px solid #ccc;
+      padding: 20px;
+      background-color: white;
+      text-align: left;
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 100%; /* Added max-width */
+    }
+  
+    .item img {
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 10px;
+    }
+  
+    .item p {
+      margin: 0;
+    }
+  
+    #addMaterialForm button {
+      background-color: #87CEEB;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  
+    .item.dimmed {
+      opacity: 0.7;
+      background-color: rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+  
+    .choice-buttons {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      justify-content: space-around;
+      background-color: black;
+      color: black;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+  
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      text-align: center;
+    }
+  
+    .modal-content button {
+      margin: 10px;
+    }
+  </style>
+  
+</head>
+
+<body>
+
+<h1>Admin Dashboard</h1>
+
+<div id="buttons-container">
+  <button id="accountManagementButton">Account Management</button>
+  <button id="logoutButton">Logout</button>
+</div>
+
+<h2>Pending for Approval</h2>
+
+<div id="pendingApproval">
+
+</div>
+
+<h2>Deactivated Accounts</h2>
+
+<div id="deactiveDiv">
+
+</div>
+
+<div id="confirmationModal" class="modal">
+  <div class="modal-content">
+    <p id="confirmationText"></p>
+    <button id="confirmYes">Yes</button>
+    <button id="confirmNo">No</button>
+  </div>
+</div>
+
+
+<script>
+  const sellerId = localStorage.getItem('sellerId');
+
+  // Get the modal element
+const modal = document.getElementById('confirmationModal');
+// Get the <span> element that closes the modal
+const confirmYesBtn = document.getElementById('confirmYes');
+const confirmNoBtn = document.getElementById('confirmNo');
+const confirmationText = document.getElementById('confirmationText');
+
+// Function to show the confirmation modal
+function showConfirmationModal(message, yesCallback, noCallback) {
+    confirmationText.textContent = message;
+    modal.style.display = 'block';
+
+    // Set up event listeners for Yes and No buttons
+    confirmYesBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        yesCallback();
+    });
+
+    confirmNoBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        noCallback();
+    });
+}
+
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  const pendingApprovalDiv = document.getElementById('pendingApproval');
+  const deactivatedAccounts = document.getElementById('deactiveDiv');
+
+  fetch(`http://192.168.100.6/api/adminTempMaterials`)
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.classList.add('item');
+
+        // Set dataset properties on the itemDiv element
+        itemDiv.dataset.temp_id = item.temp_id;
+        itemDiv.dataset.name = item.name;
+        itemDiv.dataset.size = item.size;
+        itemDiv.dataset.type = item.type;
+        itemDiv.dataset.color = item.color;
+        itemDiv.dataset.other_details = item.other_details;
+        itemDiv.dataset.seller_name = item.seller_name;
+
+        const img = document.createElement('img');
+        img.src = `data:image/png;base64, ${item.img}`;
+        itemDiv.appendChild(img);
+
+        const details = document.createElement('p');
+        details.innerHTML = `
+          <p>Name: ${item.name}</p>
+          <p>Size: ${item.size}</p>
+          <p>Type: ${item.type}</p>
+          <p>Color: ${item.color}</p>
+          <p>Details: ${item.other_details}</p>
+          <p>Seller Name: ${item.seller_name}</p>
+        `;
+        itemDiv.appendChild(details);
+
+        const approveButton = document.createElement('button');
+        approveButton.textContent = 'Approve';
+        approveButton.classList.add('approve-button');
+        approveButton.setAttribute('data-temp_id', item.temp_id);
+        approveButton.addEventListener('click', function(event) {
+          const tempId = event.target.getAttribute('data-temp_id');
+          approveButtonClickHandler(tempId);
+        });
+
+        const rejectButton = document.createElement('button');
+      rejectButton.textContent = 'Reject';
+      rejectButton.classList.add('reject-button');
+      rejectButton.setAttribute('data-temp_id', item.temp_id);
+      rejectButton.addEventListener('click', function(event) {
+    const tempId = event.target.getAttribute('data-temp_id');
+    rejectButtonClickHandler(tempId);
+  });
+
+
+        itemDiv.appendChild(approveButton);
+        itemDiv.appendChild(rejectButton); 
+
+        pendingApprovalDiv.appendChild(itemDiv);
+      });
+    })
+    .catch(error => console.error('Error:', error));
+
+    fetch(`http://192.168.100.6/api/inactive`) // Update the API endpoint
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('item');
+
+                // Set dataset properties on the itemDiv element
+                itemDiv.dataset.name = item.name;
+                itemDiv.dataset.email = item.email;
+                itemDiv.dataset.user_Type = item.user_Type;
+                itemDiv.dataset.account_status = item.account_status;
+                itemDiv.dataset.id = item.id;
+
+                const details = document.createElement('p');
+                details.innerHTML = `
+                    <p>Name: ${item.name}</p>
+                    <p>Email: ${item.email}</p>
+                    <p>User Type: ${item.user_Type}</p>
+                    <p>Account Status: ${item.account_status}</p>
+                `;
+                itemDiv.appendChild(details);
+
+                const reactivateButton = document.createElement('button');
+                reactivateButton.textContent = 'Reactivate';
+                reactivateButton.classList.add('reactivate-button');
+
+                // Set the necessary data as custom attributes on the button
+                reactivateButton.setAttribute('data-id', item.id);
+
+                // Add click event listener to the button
+                reactivateButton.addEventListener('click', function(event) {
+                    // Retrieve the necessary data from the custom attributes
+                    const id = event.target.getAttribute('data-id');
+                    
+                    // Call the reactiveButtonClickHandler with the necessary data
+                    reactiveButtonClickHandler(id);
+                });
+
+                itemDiv.appendChild(reactivateButton);
+                deactivatedAccounts.appendChild(itemDiv);
+            });
+        })
+        .catch(error => console.error('Error:', error));
+});
+
+  // Event listeners for account management and logout buttons
+
+  document.getElementById('logoutButton').addEventListener('click', function(event) {
+    event.preventDefault();
+
+    // Get the token from localStorage
+    const token = localStorage.getItem('token');
+
+    // Call the logout API to invalidate the token
+    fetch('http://192.168.100.6/api/logout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Add the token to the headers
+        },
+        body: JSON.stringify({ token }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Clear cache and redirect to index.html
+            localStorage.removeItem('token');
+            localStorage.removeItem('sellerId');
+            window.location.href = 'index.html';
+        } else {
+            console.error('Logout failed');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+rejectButton.addEventListener('click', function(event) {
+  console.log('Reject button clicked');
+  const tempId = event.target.getAttribute('data-temp_id');
+  rejectButtonClickHandler(tempId);
+});
+
+
+  document.getElementById('accountManagementButton').addEventListener('click', function(event) {
+    // Your account management logic here
+  });
+
+  function approveButtonClickHandler(tempId) {
+    showConfirmationModal(
+            "Are you sure you want to approve this new item?",
+            function() {
+                const token = localStorage.getItem('token');
+
+                fetch(`http://192.168.100.6/api/approve?temp_id=${tempId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data); // Log the response for debugging
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+                location.reload();
+
+
+            },
+            function() {
+                // User clicked "No" in the confirmation dialog, do nothing
+            }
+        );
+
+    }
+
+    function rejectButtonClickHandler(tempId) {
+    showConfirmationModal(
+        "Are you sure you want to reject this new item?",
+        function() {
+            const token = localStorage.getItem('token');
+
+            fetch(`http://192.168.100.6/api/reject?temp_id=${tempId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data); // Log the response for debugging
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            location.reload();
+        },
+        function() {
+            // User clicked "No" in the confirmation dialog, do nothing
+        }
+    );
+}
+
+
+function reactiveButtonClickHandler(id) {
+  showConfirmationModal(
+            "Are you sure you want to reactivate this account?",
+            function() {
+                const token = localStorage.getItem('token');
+
+                fetch(`http://192.168.100.6/api/activate?id=${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data); // Log the response for debugging
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+                location.reload();
+
+
+            },
+            function() {
+                // User clicked "No" in the confirmation dialog, do nothing
+            }
+        );
+}
+
+
+  
+
+
+
+</script>
+
+</body>
+
+</html>

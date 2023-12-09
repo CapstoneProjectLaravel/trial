@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Product</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+        }
+
+        .form-container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .productField {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .productField:last-child {
+            border-bottom: none;
+        }
+
+        .productField label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .productField input[type="text"],
+        .productField textarea,
+        .productField input[type="file"] {
+            width: calc(100% - 20px);
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .buttons button {
+            background-color: #4caf50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+
+        .buttons button.cancel {
+            margin-top: 10px;
+            background-color: #f44336;
+        }
+
+        .return-button {
+            margin-top: 20px;
+            text-decoration: underline;
+            cursor: pointer;
+            color: #007bff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h1>Add New Product</h1>
+
+        <form id="newProductForm" enctype="multipart/form-data">
+            <div id="productFields">
+                <!-- Initial set of input fields for product details -->
+                <div class="productField">
+                    <label for="name">Name:</label>
+                    <input type="text" class="name" name="name" required><br>
+                    <label for="category">Category:</label>
+                    <input type="text" class="category" name="category"><br>
+                    <label for="size">Size:</label>
+                    <div style="display: flex; align-items: center;">
+                        <input type="text" class="size" name="sizeValue">
+                        <select class="sizeUnit" name="sizeUnit">
+                            <option value="inches">inches</option>
+                            <option value="cm">cm</option>
+                            <option value="meters">meters</option>
+                            <option value="x">x</option>
+                        </select>
+                    </div>
+                    <label for="type">Type:</label>
+                    <input type="text" class="type" name="type"><br>
+                    <label for="color">Color:</label>
+                    <input type="text" class="color" name="color"><br>
+                    <label for="color">Price:</label>
+                    <input type="text" class="price" name="price"><br>
+                    <label for="soldPer">Sold Per:</label>
+                    <input type="text" class="soldPer" name="soldPer"><br>
+                    <label for="otherDetails">Other Details:</label>
+                    <textarea class="otherDetails" name="otherDetails"></textarea><br>
+                    <label for="image">Image:</label>
+                    <input type="file" class="image" name="image" accept="image/*"><br>
+                </div>
+            </div>
+
+            <!-- Buttons for actions -->
+            <div class="buttons">
+                <button type="button" id="addItemButton">Add Item</button>
+                <button type="button" id="doneButton">Done</button>
+                <button type="button" class="cancel" id="cancelButton">Cancel</button>
+            </div>
+        </form>
+
+        <div class="return-button" id="returnButton">Return to Dashboard</div>
+
+    </div>
+
+    <script>
+        document.getElementById('addItemButton').addEventListener('click', function () {
+            const productField = document.createElement('div');
+            productField.className = 'productField';
+            productField.innerHTML = `
+                <label for="name">Name:</label>
+                <input type="text" class="name" name="name" required><br>
+                <label for="category">Category:</label>
+                <input type="text" class="category" name="category"><br>
+                <label for="size">Size:</label>
+                    <div style="display: flex; align-items: center;">
+                        <input type="text" class="size" name="sizeValue">
+                        <select class="sizeUnit" name="sizeUnit">
+                            <option value="inches">inches</option>
+                            <option value="cm">cm</option>
+                            <option value="meters">meters</option>
+                        </select>
+                    </div>
+                <label for="type">Type:</label>
+                <input type="text" class="type" name="type"><br>
+                <label for="color">Color:</label>
+                <input type="text" class="color" name="color"><br>
+                <label for="color">Price:</label>
+                <input type="text" class="price" name="price"><br>
+                <label for="size">Sold Per:</label>
+                <input type="text" class="soldPer" name="soldPer"><br>
+                <label for="otherDetails">Other Details:</label>
+                <textarea class="otherDetails" name="otherDetails"></textarea><br>
+
+                <label for="image">Image:</label>
+                <input type="file" class="image" name="image" accept="image/*"><br>
+            `;
+            document.getElementById('productFields').appendChild(productField);
+        });
+
+        document.getElementById('cancelButton').addEventListener('click', function () {
+            // Reset the form by removing all added product fields
+            const productFields = document.querySelectorAll('.productField');
+            productFields.forEach(fieldSet => {
+                fieldSet.remove();
+            });
+            // Reset the form to its initial state
+            document.getElementById('newProductForm').reset();
+        });
+
+
+const nameInput = document.querySelector('.name');
+const categoryInput = document.querySelector('.category');
+const sizeInput = document.querySelector('.size');
+const typeInput = document.querySelector('.type');
+const colorInput = document.querySelector('.color');
+const priceInput = document.querySelector('.price');
+const soldPerInput = document.querySelector('.soldPer');
+const otherDetailsInput = document.querySelector('.otherDetails');
+// Regular expressions for validation
+const alphabeticRegex = /^[a-zA-Z\s]+$/;
+const numericRegex = /^\d+$/;
+
+// Attach input event listeners to the input fields
+nameInput.addEventListener('input', validateInput);
+categoryInput.addEventListener('input', validateInput);
+sizeInput.addEventListener('input', validateInput);
+typeInput.addEventListener('input', validateInput);
+colorInput.addEventListener('input', validateInput);
+priceInput.addEventListener('input', validateInput);
+soldPerInput.addEventListener('input', validateInput);
+otherDetailsInput.addEventListener('input', validateInput);
+
+
+function validateInput(event) {
+    const input = event.target;
+    const inputValue = input.value;
+    const inputName = input.className;
+
+    let sanitizedValue = inputValue;
+
+    // Validate based on the input name and apply appropriate regex
+    switch (inputName) {
+        case 'name':
+        case 'category':
+        case 'type':
+        case 'color':
+        case 'otherDetails':
+            sanitizedValue = inputValue.replace(/[^a-zA-Z\s]/g, ''); // Allow only letters and spaces
+            break;
+        case 'size':
+        sanitizedValue = inputValue.replace(/[^0-9x]/gi, ''); // Allow only digits and 'x'
+            break;
+        case 'price':
+            sanitizedValue = inputValue.replace(/\D/g, ''); // Allow only digits
+            break;
+        default:
+            break;
+    }
+
+    if (inputValue !== sanitizedValue) {
+        // If the input value was sanitized, update the input value and show an alert
+        input.value = sanitizedValue;
+        alert(`Invalid input for ${inputName}. Invalid characters have been removed.`);
+        document.getElementById('doneButton').disabled = false;
+    }
+}
+
+
+
+
+    document.getElementById('doneButton').addEventListener('click', function () {
+    const productFields = document.querySelectorAll('.productField');
+    const productsData = [];
+    
+    // Validation flags
+    let isValid = true;
+    let errorMessage = '';
+    
+
+    productFields.forEach(fieldSet => {
+        const name = fieldSet.querySelector('.name').value;
+        const category = fieldSet.querySelector('.category').value;
+        let sizeValue = fieldSet.querySelector('.size').value;
+        const sizeUnit = fieldSet.querySelector('.sizeUnit').value;
+
+        const type = fieldSet.querySelector('.type').value;
+        const color = fieldSet.querySelector('.color').value;
+        const price = fieldSet.querySelector('.price').value;
+        const otherDetails = fieldSet.querySelector('.otherDetails').value;
+        const soldPer = fieldSet.querySelector('.soldPer').value.toLowerCase(); // Convert to lowercase for case-insensitive comparison
+        const imageFile = fieldSet.querySelector('.image').files[0];
+              // Check for empty fields
+      if (!name || !sizeValue || !price || !soldPer || !otherDetails || !imageFile) {
+            isValid = false;
+            errorMessage = 'All fields are required. Please fill out all the fields.';
+            return; // Exit the loop if any field is empty
+        }
+        if (sizeValue.trim() !== ' ') {
+        sizeValue +=" " + sizeUnit;
+    }
+
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('size', sizeValue);
+        formData.append('category', category);
+        formData.append('type', type);
+        formData.append('color', color);
+        formData.append('price', price);
+        formData.append('soldPer', soldPer);
+        formData.append('other_details', otherDetails);
+        formData.append('image', imageFile);
+
+        const sellerId = localStorage.getItem('sellerId');
+        formData.append('seller_id', sellerId);
+
+        productsData.push(formData);
+    });
+
+    // Display error and prevent form submission if any field is empty
+    if (!isValid) {
+        alert(errorMessage);
+        return;
+    }
+
+    // Use Promise.all to wait for all requests to complete
+    const requests = productsData.map(formData => {
+        return fetch('http://192.168.100.6/api/addTemp', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+        })
+        .then(response => response.json());
+    });
+
+    // Wait for all requests to complete
+    Promise.all(requests)
+    .then(data => {
+        console.log('All products added successfully:', data);
+        window.location.href = 'dashboard.html'; // Redirect after all items are added
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+
+
+        document.getElementById('returnButton').addEventListener('click', function () {
+            // Redirect the user to dashboard
+            window.location.href = 'dashboard.html';
+        });
+    </script>
+
+</body>
+
+</html>

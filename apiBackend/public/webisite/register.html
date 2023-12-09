@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Form</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        input {
+            width: calc(100% - 12px);
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border: 1px solid #dddfe2;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .location-button-container {
+            position: relative;
+            width: 100%;
+        }
+
+        button {
+            background-color: #1877f2;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%; /* Make the button fill the width */
+        }
+
+        button:hover {
+            background-color: #166fe5;
+        }
+
+        p {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        a {
+            color: #1877f2;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h2>Registration</h2>
+        <form id="registrationForm">
+            <input type="hidden" name="user_Type" value="Seller Account">
+            <input type="text" id="name" name="name" placeholder="Name" required><br>
+            <input type="email" id="email" name="email" placeholder="Email" required><br>
+            <div class="location-button-container">
+                <input type="text" id="address" name="address" placeholder="Address" required>
+                <button type="button" onclick="captureLocation()">Capture Location</button>
+            </div>
+            <br>
+            <input type="tel" id="contact" name="contact" placeholder="Contact" required><br>
+            <input type="password" id="password" name="password" placeholder="Password" required
+                autocomplete="new-password"><br>
+            <input type="password" id="password_confirmation" name="password_confirmation"
+                placeholder="Confirm Password" required autocomplete="new-password"><br>
+
+            <button type="submit">Register</button>
+        </form>
+
+        <p>Already have an account? <a href="index.html">Login here</a></p>
+
+    </div>
+
+<script>
+  document.getElementById('registrationForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const address = document.getElementById('address').value;
+      const contact = document.getElementById('contact').value;
+      const password = document.getElementById('password').value;
+      const password_confirmation = document.getElementById('password_confirmation').value;
+  
+      // Perform registration using fetch API
+      fetch('http://192.168.100.6/api/register', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              user_Type: 'Seller Account',
+              name,
+              email,
+              address,
+              contact,
+              password,
+              account_status: 'Active'
+          }),
+      })
+          .then(response => response.json())
+          .then(data => {
+              console.log(data); // Log the response to see what the API is returning
+              if (data.success) {
+                  console.log('Registration successful');
+  
+                  fetch('http://192.168.100.6/api/login', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ email, password }),
+                  })
+                      .then(response => response.json())
+                      .then(data => {
+                          if (data.success) {
+                              // Call the API to get the seller ID
+                              fetch(`http://192.168.100.6/api/get-seller-id?user_id=${data.user.id}`)
+                                  .then(response => response.json())
+                                  .then(sellerData => {
+                                      if (sellerData.seller_id) {
+                                          // Store the token and seller ID in localStorage
+                                          localStorage.setItem('token', data.token);
+                                          localStorage.setItem('sellerId', sellerData.seller_id);
+                                          localStorage.setItem('id', data.user.id);
+                                          // Redirect to dashboard with seller ID
+                                          window.location.href = `dashboard.html?seller_id=${sellerData.seller_id}`;
+                                      } else {
+                                          // Handle cases where the user is not a seller
+                                          console.error('User is not a seller');
+                                      }
+                                  })
+                                  .catch(error => console.error('Error:', error));
+                          } else {
+                              // Handle login failure, show error message
+                              console.error('Login failed');
+                          }
+                      })
+                      .catch(error => console.error('Error:', error));
+              } else {
+                  // Handle registration failure, show error message
+                  console.error('Registration failed');
+              }
+          })
+          .catch(error => console.error('Error:', error));
+  });
+  
+  function captureLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                // Directly fetch reverse geocoding information from OpenStreetMap
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.display_name) {
+                            // Update the address input
+                            document.getElementById('address').value = data.display_name;
+                            console.log(longitude);
+                            console.log(latitude);
+
+
+                        } else {
+                            console.error('Reverse geocoding failed or no address information');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            },
+            function (error) {
+                console.error('Error getting user location:', error.message);
+            }
+        );
+    } else {
+        console.error('Geolocation is not supported by this browser.');
+    }
+}
+
+  </script>
+  
+</body>
+
+</html>

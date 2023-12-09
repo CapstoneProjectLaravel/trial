@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    h2 {
+      margin-top: 20px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #000;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .container {
+      width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+ 
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0,0,0);
+  background-color: rgba(0,0,0,0.4);
+  padding-top: 60px;
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 5% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+    
+  </style>
+</head>
+
+<body>
+
+<h1>Seller Dashboard</h1>
+
+<div class="container">
+
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="email" id="loginEmail" name="email" placeholder="Email" required><br>
+    <input type="password" id="loginPassword" name="password" placeholder="Password" required><br>
+    <button type="submit" id="loginSubmitButton">Login</button>
+  </form>
+
+  <p>Don't have an account? <a href="register.html">Register here</a></p>
+
+
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <p id="modal-message"></p>
+  </div>
+</div>
+<script>
+    const emailInput = document.getElementById('loginEmail');
+    // Get the error message element
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    emailInput.parentNode.appendChild(errorMessage);
+
+    // Event listener for input events on the email field
+    emailInput.addEventListener('input', function(event) {
+      const emailValue = event.target.value;
+      // Regular expression to match valid email format (no special characters except '@' and '.')
+      const emailRegex = /^[a-zA-Z0-9._@]+$/;
+      if (!emailRegex.test(emailValue)) {
+        errorMessage.textContent = 'Invalid characters in email. Only @ and . are allowed.';
+        // Disable the submit button when there are invalid characters in the email
+        document.getElementById('loginSubmitButton').disabled = true;
+      } else {
+        errorMessage.textContent = '';
+        // Enable the submit button when the email is valid
+        document.getElementById('loginSubmitButton').disabled = false;
+      }
+    });
+    const modal = document.getElementById('myModal');
+const modalMessage = document.getElementById('modal-message');
+const closeBtn = document.getElementsByClassName('close')[0];
+
+// Event listener for close button click
+closeBtn.onclick = function() {
+  modal.style.display = 'none';
+};
+
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+  event.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  // Perform account status check using fetch API
+  fetch('http://192.168.100.6/api/check-status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  })
+    .then(response => response.json())
+    .then(accountStatusData => {
+      if (accountStatusData.success) {
+        // Account status is active, proceed with login API
+        fetch('http://192.168.100.6/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Call the API to get the seller ID
+              fetch(`http://192.168.100.6/api/get-seller-id?user_id=${data.user.id}`)
+                .then(response => response.json())
+                .then(sellerData => {
+                  if (sellerData.seller_id) {
+                    // Store the token and seller ID in localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('sellerId', sellerData.seller_id);
+                    localStorage.setItem('id', data.user.id);
+                    // Redirect to dashboard with seller ID
+                    window.location.href = `dashboard.html?seller_id=${sellerData.seller_id}`;
+                  } else {
+                    // Handle cases where the user is not a seller
+                    modalMessage.textContent = 'User is not a seller';
+                    modal.style.display = 'block'; // Display the modal
+                  }
+                })
+                .catch(error => console.error('Error:', error));
+            } else {
+              // Handle login failure, show error message
+              modalMessage.textContent = 'Login failed';
+              modal.style.display = 'block'; // Display the modal
+            }
+          })
+          .catch(error => console.error('Error:', error));
+      } else {
+        // Account status is not active, show error message
+        modalMessage.textContent = 'Account not active: ';
+        modal.style.display = 'block'; // Display the modal
+      }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+</script>
+
+</body>
+
+</html>
